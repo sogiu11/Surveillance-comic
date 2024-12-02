@@ -1,4 +1,5 @@
 // script.js
+
 const comicPages = [
     './images/page1.jpg',
     './images/page2.jpg',
@@ -9,11 +10,20 @@ const trackingData = {
     pageTime: [],
     pollResponses: [],
     reactions: [],
-    comments: []
+    comments: [],
+    mouseMovements: [],
+    totalTime: 0,
+    screenZones: {
+        north: 0,
+        south: 0,
+        east: 0,
+        west: 0
+    }
 };
 
 let currentPage = 0;
 let pageStartTime = Date.now();
+let siteStartTime = Date.now();
 
 // Load comic pages
 const comicViewer = document.getElementById('comic-viewer');
@@ -38,12 +48,33 @@ comicViewer.addEventListener('scroll', () => {
         pageStartTime = now;
     }
 
-    // Show consent button after scrolling through all pages
     if (comicViewer.scrollLeft + comicViewer.clientWidth >= comicViewer.scrollWidth) {
         document.getElementById('consent-button').style.display = 'block';
     }
 });
 
+// Track mouse movement
+document.body.addEventListener('mousemove', (event) => {
+    const { clientX, clientY, innerWidth, innerHeight } = event;
+
+    trackingData.mouseMovements.push({ x: clientX, y: clientY, time: Date.now() });
+
+    if (clientY < innerHeight / 2) {
+        if (clientX < innerWidth / 2) trackingData.screenZones.north++;
+        else trackingData.screenZones.east++;
+    } else {
+        if (clientX < innerWidth / 2) trackingData.screenZones.west++;
+        else trackingData.screenZones.south++;
+    }
+});
+
+// Calculate total time on site
+window.addEventListener('beforeunload', () => {
+    trackingData.totalTime = (Date.now() - siteStartTime) / 1000;
+    localStorage.setItem('trackingData', JSON.stringify(trackingData));
+});
+
+// Polls, reactions, and comments remain unchanged
 // Polls
 const pollSection = document.getElementById('poll-section');
 comicPages.forEach((_, index) => {
@@ -57,23 +88,28 @@ comicPages.forEach((_, index) => {
     pollSection.appendChild(poll);
 });
 
+
 pollSection.addEventListener('change', (event) => {
     const [_, index] = event.target.name.split('-');
     trackingData.pollResponses[index] = event.target.value;
 
+
     // Pop-up per conferma
     alert(`You successfully voted for poll ${parseInt(index) + 1}!`);
 });
+
 
 // Reactions
 document.querySelectorAll('.reaction-btn').forEach((btn) => {
     btn.addEventListener('click', (event) => {
         trackingData.reactions.push(event.target.dataset.reaction);
 
+
         // Pop-up per conferma
         alert('You successfully reacted!');
     });
 });
+
 
 // Comments
 const commentInput = document.getElementById('comment-input');
